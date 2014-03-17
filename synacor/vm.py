@@ -74,56 +74,61 @@ MAX_VALID_VALUE = 32775
 MAX_MEMORY_ADDRESS = 32767
 TOROIDAL_MEMORY = True
 
+
 class Decompiler(object):
+
+    ZERO_OPTS = [HALT, NOOP, RET]
+    ONE_OPTS = [PUSH, POP, JMP, CALL, OUT, IN]
+    TWO_OPTS = [SET, JT, JF, RMEM, WMEM, NOT]
+    THREE_OPTS = [EQ, GT, ADD, MULT, MOD, AND, OR]
+
     def __init__(self):
         self.line = 0
         self.offset = 0
 
     def decompile(self, data):
-        stop = False
         a = b = c = None
 
-        zero_opts = [HALT, NOOP, RET]
-        one_opts = [PUSH, POP, JMP, CALL, OUT, IN]
-        two_opts = [SET, JT, JF, RMEM, WMEM, NOT]
-        three_opts = [EQ, GT, ADD, MULT, MOD, AND, OR]
-
-        while not stop:
+        while True:
             if self.offset > len(data) - 1:
-                stop = True
-                continue
+                break
 
-            instruction = data[self.offset]
-
-            if instruction in zero_opts:
-                self.print_instruction(instruction)
-                self.offset += 1
-            elif instruction in one_opts:
-                a = data[self.offset + 1]
-                self.print_instruction(instruction, a)
-                self.offset += 2
-            elif instruction in two_opts:
-                a = data[self.offset + 1]
-                b = data[self.offset + 2]
-                self.print_instruction(instruction, a, b)
-                self.offset += 3
-            elif instruction in three_opts:
-                a = data[self.offset + 1]
-                b = data[self.offset + 2]
-                c = data[self.offset + 3]
-                self.print_instruction(instruction, a, b, c)
-                self.offset += 4
-            else:
-                print "Unknown instruction: %s:%s" % (str(self.offset), str(instruction))
-                self.offset += 1
+            self.offset = self.decompile_offset(self.offset, data)
 
             self.line += 1
 
-    def print_instruction(self, instruction, a=None, b=None, c=None):
+    def decompile_offset(self, offset, data):
+        instruction = data[offset]
+
+        if instruction in Decompiler.ZERO_OPTS:
+            self.print_instruction(offset, instruction)
+            offset += 1
+        elif instruction in Decompiler.ONE_OPTS:
+            a = data[offset + 1]
+            self.print_instruction(offset, instruction, a)
+            offset += 2
+        elif instruction in Decompiler.TWO_OPTS:
+            a = data[offset + 1]
+            b = data[offset + 2]
+            self.print_instruction(offset, instruction, a, b)
+            offset += 3
+        elif instruction in Decompiler.THREE_OPTS:
+            a = data[offset + 1]
+            b = data[offset + 2]
+            c = data[offset + 3]
+            self.print_instruction(offset, instruction, a, b, c)
+            offset += 4
+        else:
+            print "Unknown instruction: %s:%s" % (str(offset), str(instruction))
+            offset += 1
+
+        return offset
+
+    def print_instruction(self, offset, instruction, a=None, b=None, c=None):
         params = [self.parse_argument(x)  for x in [a, b, c] if x is not None]
         param_tokens = [] + (["%s"] * len(params))
 
-        line = "[" + str(self.line).zfill(5) + ":" + str(self.offset).zfill(5) + "]: " + INSTRUCTIONS[instruction] \
+        line = "[" + str(self.line).zfill(5) + ":" + str(offset).zfill(5) + "]: " + INSTRUCTIONS[instruction] \
                + " " + ", ".join(param_tokens)
 
         print line % tuple(params)
@@ -143,6 +148,7 @@ class FileLoader(object):
     @staticmethod
     def save(ndarray, file):
         ndarray.astype('uint16').tofile(file)
+
 
 class VmDebugger(object):
     """A debugger for the VM
@@ -171,7 +177,8 @@ class VmDebugger(object):
         'load': 'd',
         'breako': 'g',
         'ssize': 'Z',
-        'stack': 'S'
+        'stack': 'S',
+        'cstack': 'C'
     }
 
     COMMAND_SHORTCUTS = {v: k for k, v in COMMANDS.items()}
@@ -207,6 +214,16 @@ class VmDebugger(object):
     def vm(self, vm):
         self._vm = vm
 
+    @property
+    def decompiler(self):
+        if self._decompiler is None:
+            self._decompiler = Decompiler()
+        return self._decompiler
+
+    @decompiler.setter
+    def decompiler(self, decompiler):
+        self._decompiler = decompiler
+
     def __init__(self, vm):
         self._pubsub = None
         self._vm = None
@@ -216,6 +233,8 @@ class VmDebugger(object):
         self.spy = False
         self.break_step_count = None
         self.break_offset = None
+        self._decompiler = None
+        self.call_stack = numpy.array([], dtype='<u2')
 
         publisher = self.pubsub.new_publisher()
         vm.publisher = publisher
@@ -242,8 +261,11 @@ class VmDebugger(object):
             self.resume = False
 
         if self.spy:
-            print "%s:%s - %s" % (str(self.step_counter), self.format_memory_address(self.vm.exec_ptr),
-                                                            INSTRUCTIONS[self.vm.read_memory(self.vm.exec_ptr)])
+            print "%s:%s - %s" % (str(self.step_counter),
+                                  self.format_memory_address(self.vm.exec_ptr),
+                                  INSTRUCTIONS[self.vm.read_memory(self.vm.exec_ptr)])
+
+        self.call_stack = numpy.append(self.call_stack, self.vm.exec_ptr)
 
         if self.resume:
             return
@@ -287,6 +309,12 @@ class VmDebugger(object):
         """ Output the stack
         """
         print self.vm.stack
+
+    def command_cstack(self):
+        """ Output the call stack
+        """
+        for memory_offset in self.call_stack:
+            self.decompiler.decompile_offset(memory_offset, self.vm.memory)
 
     def command_breaks(self, step_count):
         """ Sets a break point at a specific step count

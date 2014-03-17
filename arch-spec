@@ -48,7 +48,7 @@ gt: 5 a b c
 jmp: 6 a
   jump to <a>
 jt: 7 a b
-  if <a> dis nonzero, jump to <b>
+  if <a> is nonzero, jump to <b>
 jf: 8 a b
   if <a> is zero, jump to <b>
 add: 9 a b c
