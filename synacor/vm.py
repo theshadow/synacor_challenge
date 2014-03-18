@@ -181,6 +181,29 @@ class VmDebugger(object):
         'cstack': 'C'
     }
 
+    COMMAND_OPTS_COUNT = {
+        'continue': 0,
+        'peek': (1, 2),
+        'poke': 2,
+        'push': 1,
+        'pop': 0,
+        'speek': (1, 2),
+        'spoke': 2,
+        'jump': 1,
+        'set': 2,
+        'registers': 0,
+        'resume': 0,
+        'quit': 0,
+        'spy': 0,
+        'breaks': 1,
+        'save': 1,
+        'load': 1,
+        'breako': 1,
+        'ssize': 0,
+        'stack': 0,
+        'cstack': 0
+    }
+
     COMMAND_SHORTCUTS = {v: k for k, v in COMMANDS.items()}
 
     REGISTER_MAP = {
@@ -298,6 +321,18 @@ class VmDebugger(object):
             print "Command %s unknown, ignoring" % (command)
             return
 
+        command_opts_count = self.COMMAND_OPTS_COUNT[command]
+        correct_opt_count = False
+
+        if len(options) == command_opts_count:
+            correct_opt_count = True
+        elif isinstance(command_opts_count, tuple) and len(options) in command_opts_count:
+            correct_opt_count = True
+
+        if not correct_opt_count:
+            print "Invalid options count for %s" % (command)
+            return
+
         getattr(self,'command_' + command)(*options)
 
     def command_ssize(self):
@@ -402,7 +437,6 @@ class VmDebugger(object):
 
     def command_pop(self):
         value = self.vm.stack_pop()
-        value = self.parse_register_annotation(value)
 
         print "%s" % str(value)
 
@@ -766,6 +800,12 @@ class Vm(PublisherAware):
         """
         self.set_register(register, 0)
 
+        if Vm.is_register(left_hand):
+            left_hand = self.get_register(left_hand)
+
+        if Vm.is_register(right_hand):
+            right_hand = self.get_register(right_hand)
+
         if left_hand > right_hand:
             self.set_register(register, 1)
 
@@ -919,9 +959,9 @@ class Vm(PublisherAware):
         """ Push the memory address of the next instruction onto the stack and then jump to address
         :param address: The memory address to jump to after pushing onto the stack
         """
-        value = self.exec_ptr + 2  # the value of the next instruction's memory
+        next_instruction_offset = self.exec_ptr + 2  # the value of the next instruction's memory
 
-        self.stack_push(value)
+        self.stack_push(next_instruction_offset)
 
         if Vm.is_register(address):
             address = self.get_register(address)
@@ -956,9 +996,8 @@ class Vm(PublisherAware):
         """
         user_input = raw_input('Input: ')
 
-        if len(user_input):
-            value = uint16(ord(user_input[0]))
-            self.set_register(register, value)
+        value = uint16(ord(user_input[0]))
+        self.set_register(register, value)
 
     #state modifying methods
 

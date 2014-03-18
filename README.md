@@ -49,8 +49,24 @@ About to leave for a family thing, last update. **FRUSTRATED** I have an infinit
 
 Got back and worked for the last couple of hours seriously trying to find fault in the bitwise operators. I can't find one. Stepping through, testing it out in the interactive shell in isolation... once I get to [2125] (my offset in memory annotation, btw) I end up jumping back to a point in memory that leads to me back at 2125. I'm going to give up for now. I think I need some time to think about the problem. Perhaps the fact that I'm at [2125] is the problem to begin with. Means I've have to backtrack a bit up the stack... sadness.
 
-## Sunday, March 17th, 2014
+## Monday, March 17th, 2014
 
-### 14:13
+### 14:13 MDT
 
 Spoke with the project creator, he says I'm really close just have to find out why the loop condition isn't being met, now I just have to wait 45 minutes for the day to end...
+
+### 15:06 MDT
+
+And now the real fun beings, first I'll begin by examining the call stack while in that loop. Shouldn't be too difficult since I have the ability to not only set breakpoints on offsets but also execution steps.
+
+### 16:50 MDT
+
+He was a sneaky bastard, hiding a simple loop to 30,050 behind a wall of very expensive operations... took nearly 6 minutes! I may have to optimize some of my instructions...
+
+### 17:18 MDT
+
+Argh, not sure if I hit another one of the hideous loops or not... will have to step through again.
+
+### 19:00 MDT
+
+Finally found my last self-test bug. My GT wasn't checking for registers, thought I corrected all instances... sigh. Now into the next part. Note to self. An empty string is a valid input, sneaky bastards.
