@@ -7,6 +7,8 @@ import sys
 import numpy
 from numpy import array, uint16
 
+from collections import deque
+
 from pubsub import PublisherAware, PubSub
 
 INSTRUCTIONS = {
@@ -257,7 +259,7 @@ class VmDebugger(object):
         self.break_step_count = None
         self.break_offset = None
         self._decompiler = None
-        self.call_stack = numpy.array([], dtype='<u2')
+        self.call_stack = deque()
 
         publisher = self.pubsub.new_publisher()
         vm.publisher = publisher
@@ -288,7 +290,7 @@ class VmDebugger(object):
                                   self.format_memory_address(self.vm.exec_ptr),
                                   INSTRUCTIONS[self.vm.read_memory(self.vm.exec_ptr)])
 
-        self.call_stack = numpy.append(self.call_stack, self.vm.exec_ptr)
+        self.call_stack.append(self.vm.exec_ptr)
 
         if self.resume:
             return
@@ -544,12 +546,21 @@ class Vm(PublisherAware):
     def exec_ptr(self, value):
         self._exec_ptr = value
 
+    @property
+    def input_buffer(self):
+        return self._input_buffer
+
+    @input_buffer.setter
+    def input_buffer(self, value):
+        self._input_buffer = value
+
     def __init__(self):
         super(Vm, self).__init__()
 
         self.halt = False
         self._memory = numpy.zeros((MAX_MEMORY_ADDRESS,), dtype=numpy.dtype('<u2'))
-        self._stack = array([], dtype=uint16)
+        self._stack = deque()
+        self._input_buffer = deque()
         self._registers = [
             0,
             0,
@@ -994,9 +1005,13 @@ class Vm(PublisherAware):
         """ Accept input from the user, able to read in one character though will accept until newline.
         :param register: Where to store the ASCII value of the first character
         """
-        user_input = raw_input('Input: ')
+        if len(self.input_buffer) == 0:
+            user_input = raw_input() + '\n'
+            self.input_buffer = deque(user_input)
 
-        value = uint16(ord(user_input[0]))
+        char = self.input_buffer.popleft()
+        value = ord(char)
+
         self.set_register(register, value)
 
     #state modifying methods
@@ -1048,14 +1063,13 @@ class Vm(PublisherAware):
         """ Push value onto the stack
         :param value: The value to push onto the stack
         """
-        self.stack = numpy.insert(self.stack, 0, value)
+        self.stack.append(value)
 
     def stack_pop(self):
         """ Pop a value from the stack
         :returns value popped off from the stack
         """
-        value = self.stack[0]
-        self.stack = numpy.delete(self.stack, 0, 0)
+        value = self.stack.pop()
 
         return value
 
