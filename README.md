@@ -71,6 +71,8 @@ Argh, not sure if I hit another one of the hideous loops or not... will have to 
 
 Finally found my last self-test bug. My GT wasn't checking for registers, thought I corrected all instances... sigh. Now into the next part. Note to self. An empty string is a valid input, sneaky bastards.
 
+## Tuesday, March 18th, 2014
+
 ### 22:30 MDT
 
 Alright no matter what I enter it just loops, input is now being stored into an input buffer I can see it reading into memory. I've found where in the programs memory it's storing the "commands" but they don't match.
