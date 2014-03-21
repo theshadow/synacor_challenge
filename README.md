@@ -88,3 +88,9 @@ Holy crap I'm an idiot... in an effort to save operations in the EQ operation I 
 ```EQ @3, @0, @3```
 
 Guess what? @3 was overwritten before the comparison. Yea, I'm an idiot. I just finished getting the first code from the "game". I've also become the delightful snack to a grue twice, that bastard.
+
+### 21:09 MDT
+
+After dinner with the wife and roommate came back and solved the math problem with a quick little script. Made it to the office and then felt dejected. I hadn't enabled my debuggers spy to keep an eye on where in memory the program was and to make the next section work it's going to require rewriting parts of the app.....
+
+I have some notes on getting through the maze again hopefully I can move through quickly and figure out where in memory we're at when we need to optimize the algorithm. Sneaky giving me an invalid code though... talk about false hope. Oh well, more tomorrow.
