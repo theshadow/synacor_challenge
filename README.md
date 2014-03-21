@@ -78,3 +78,13 @@ Finally found my last self-test bug. My GT wasn't checking for registers, though
 Alright no matter what I enter it just loops, input is now being stored into an input buffer I can see it reading into memory. I've found where in the programs memory it's storing the "commands" but they don't match.
 
 In a last stroke of good news I found where it's comparing the users input to the commands length one at a time. Tomorrow I'll type in help and step through to see if I can figure why my input doesn't match what they have in memory.
+
+## Thursday, March 20th, 2014
+
+### 19:12 MDT
+
+Holy crap I'm an idiot... in an effort to save operations in the EQ operation I flip the register to be false to begin with. So if you have something like
+
+```EQ @3, @0, @3```
+
+Guess what? @3 was overwritten before the comparison. Yea, I'm an idiot. I just finished getting the first code from the "game". I've also become the delightful snack to a grue twice, that bastard.

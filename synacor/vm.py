@@ -69,7 +69,7 @@ REGISTER_5 = 32773
 REGISTER_6 = 32774
 REGISTER_7 = 32775
 
-FIFTEENTH_BIT_MASK = uint16(~(1 << 15))
+FIFTEENTH_BIT_MASK = ~(1 << 15)
 
 MAX_INT = 32768
 MAX_VALID_VALUE = 32775
@@ -149,7 +149,7 @@ class FileLoader(object):
 
     @staticmethod
     def save(ndarray, file):
-        ndarray.astype('uint16').tofile(file)
+        ndarray.astype('<u2').tofile(file)
 
 
 class VmDebugger(object):
@@ -394,7 +394,7 @@ class VmDebugger(object):
         value = self.parse_register_annotation(value)
 
         address = int(address)
-        value = uint16(value)
+        value = int(value)
 
         if address < 0 or address > MAX_MEMORY_ADDRESS:
             print "Invalid memory address to poke, must be between 0...%s" % (str(MAX_MEMORY_ADDRESS))
@@ -425,7 +425,7 @@ class VmDebugger(object):
         value = self.parse_register_annotation(value)
 
         offset = int(offset)
-        value = uint16(value)
+        value = int(value)
 
         if value > MAX_VALID_VALUE:
             print "Invalid value, must be between 0...%s" % (str(MAX_VALID_VALUE))
@@ -434,7 +434,7 @@ class VmDebugger(object):
 
     def command_push(self, value):
         value = self.parse_register_annotation(value)
-        value = uint16(value)
+        value = int(value)
         self.vm.stack_push(value)
 
     def command_pop(self):
@@ -451,7 +451,7 @@ class VmDebugger(object):
 
     def command_set(self, register, value):
         register = self.parse_register_annotation(register)
-        value = uint16(value)
+        value = int(value)
         self.vm.set_register(register, value)
 
     def command_registers(self):
@@ -497,7 +497,7 @@ class VmDebugger(object):
         return annotation
 
     def compose_register_annotation(self, value):
-        value = uint16(value)
+        value = int(value)
         if Vm.is_register(value):
             value = "@%s" % (str(VmDebugger.INVERSE_REGISTER_MAP[value]))
 
@@ -511,7 +511,7 @@ class VmDebugger(object):
 
 
 class Vm(PublisherAware):
-    """ A virtual machine with 21 instructions, 8 registers, 1 execution pointer, 15-bit addressable memory for uint16
+    """ A virtual machine with 21 instructions, 8 registers, 1 execution pointer, 15-bit addressable memory for int
     """
 
     @property
@@ -558,7 +558,7 @@ class Vm(PublisherAware):
         super(Vm, self).__init__()
 
         self.halt = False
-        self._memory = numpy.zeros((MAX_MEMORY_ADDRESS,), dtype=numpy.dtype('<u2'))
+        self._memory = [] + [0] * (MAX_MEMORY_ADDRESS + 1)
         self._stack = deque()
         self._input_buffer = deque()
         self._registers = [
@@ -599,7 +599,6 @@ class Vm(PublisherAware):
                 a = self.get_a_param()
                 b = self.get_b_param()
 
-                assert isinstance(b, uint16)
                 self.instruction_set(a, b)
 
                 self.exec_ptr += 3
@@ -733,15 +732,19 @@ class Vm(PublisherAware):
 
     def load(self, data):
         """ Takes in parsed binary data and loads it into memory
-        :param data: An array([], dtype=uint16) set of data.
+        :param data: []
         """
         if len(data) == 0:
             raise ValueError("No data to load")
         elif len(data) > MAX_MEMORY_ADDRESS + 1:
             raise OverflowError("Not enough memory to load program.")
 
+        count = (MAX_MEMORY_ADDRESS + 1) - len(data)
+
+        data = [int(n) for n in data]
+
         self.halt = False
-        self.memory = numpy.append(data, numpy.zeros((MAX_MEMORY_ADDRESS - len(data),), dtype=numpy.dtype('<u2')))
+        self.memory = data + [0] * count
         self.registers = [
             0,
             0,
@@ -792,8 +795,6 @@ class Vm(PublisherAware):
         :param left_hand: The left hand of the equality operation
         :param right_hand: The right hand of the equality operation
         """
-        self.set_register(register, 0)
-
         if Vm.is_register(left_hand):
             left_hand = self.get_register(left_hand)
 
@@ -802,6 +803,8 @@ class Vm(PublisherAware):
 
         if left_hand == right_hand:
             self.set_register(register, 1)
+        else:
+            self.set_register(register, 0)
 
     def instruction_gt(self, register, left_hand, right_hand):
         """ Set register to be 1 if the left_hand is greater than the right_hand
@@ -880,10 +883,7 @@ class Vm(PublisherAware):
         if Vm.is_register(b):
             b = self.get_register(b)
 
-        a = int(a)  # cast them to 32-bit integers so we can do maths with big numbers then modulus them.
-        b = int(b)  #
-
-        result = uint16((a * b) % MAX_INT)
+        result = (a * b) % MAX_INT
 
         self.set_register(register, result)
 
@@ -913,7 +913,7 @@ class Vm(PublisherAware):
         if Vm.is_register(b):
             b = self.get_register(b)
 
-        self.set_register(register, (a & b) & FIFTEENTH_BIT_MASK)
+        self.set_register(register, (a & b) % MAX_INT)
 
     def instruction_or(self, register, a, b):
         """ Store into destination the bitwise or of a and b
@@ -927,7 +927,7 @@ class Vm(PublisherAware):
         if Vm.is_register(b):
             b = self.get_register(b)
 
-        self.set_register(register, (a | b) & FIFTEENTH_BIT_MASK)
+        self.set_register(register, (a | b) % MAX_INT)
 
     def instruction_not(self, register, value):
         """ Store into destination the bitwise not of a
@@ -938,7 +938,7 @@ class Vm(PublisherAware):
             value = self.get_register(value)
 
         # do the inverse and flip bit 16
-        self.set_register(register, ~value & FIFTEENTH_BIT_MASK)
+        self.set_register(register, ~value % MAX_INT)
 
     def instruction_rmem(self, register, address):
         """ Read memory at address source and write it to destination
@@ -1033,7 +1033,8 @@ class Vm(PublisherAware):
         """
         if not Vm.is_register(register):
             raise ValueError("Expected register value, instead got: " + str(register))
-        return self.registers[(register - REGISTER_0)]
+
+        return self.registers[register - REGISTER_0]
 
     def get_a_param(self):
         """ Grab and validate the a operation parameter from exec_pointer + 1
@@ -1121,7 +1122,7 @@ class Vm(PublisherAware):
     @staticmethod
     def is_register(value):
         """ Checks to see if the passed in value is is a register or not.
-        :param int value: An uint16 value
+        :param int value: An int value
         :returns boolean True if it is a register and False otherwise
         """
         if REGISTER_0 <= value <= REGISTER_7:
