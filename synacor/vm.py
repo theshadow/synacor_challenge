@@ -377,7 +377,7 @@ class VmDebugger(object):
         self.spy = True
 
     def command_continue(self):
-        """ Just allows the vm to continue to the next step
+        """ Just allows the debugger to continue to the next step
         """
         self.step_continue = True
 
@@ -812,8 +812,6 @@ class Vm(PublisherAware):
         :param left_hand: The left hand side of the comparison operation
         :param right_hand: The right hand of the comparison operation
         """
-        self.set_register(register, 0)
-
         if Vm.is_register(left_hand):
             left_hand = self.get_register(left_hand)
 
@@ -822,6 +820,8 @@ class Vm(PublisherAware):
 
         if left_hand > right_hand:
             self.set_register(register, 1)
+        else:
+            self.set_register(register, 0)
 
     def instruction_jmp(self, address):
         """ Jump to address in memory

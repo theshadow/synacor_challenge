@@ -94,3 +94,10 @@ Guess what? @3 was overwritten before the comparison. Yea, I'm an idiot. I just 
 After dinner with the wife and roommate came back and solved the math problem with a quick little script. Made it to the office and then felt dejected. I hadn't enabled my debuggers spy to keep an eye on where in memory the program was and to make the next section work it's going to require rewriting parts of the app.....
 
 I have some notes on getting through the maze again hopefully I can move through quickly and figure out where in memory we're at when we need to optimize the algorithm. Sneaky giving me an invalid code though... talk about false hope. Oh well, more tomorrow.
+
+## Friday, March 21st, 2014
+
+### 12:00 MDT
+
+The creator of the challenge clarified that the code was, in fact, a bad code. So I had a bug somewhere in my VM. At first I was dismayed, where the hell could I have a bug that would output several correct codes and one failed one... Then as we were chatting it hit me. GT was nearly a copy/paste of EQ. I bet I was clearing the register before comparison. A quick change and off I went. The maze was a little more complicated almost inverted from before (gee I wonder why). But I made it through and got the correct code. Now I'm onto the 7th and 8th.
+

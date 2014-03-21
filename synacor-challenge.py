@@ -16,7 +16,7 @@ def main():
 
     vm = Vm()
     vm.load(data)
-    #vm.run()
+    #debugger.run()
 
     debugger = VmDebugger(vm)
     debugger.run()
