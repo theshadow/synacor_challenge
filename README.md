@@ -101,3 +101,7 @@ I have some notes on getting through the maze again hopefully I can move through
 
 The creator of the challenge clarified that the code was, in fact, a bad code. So I had a bug somewhere in my VM. At first I was dismayed, where the hell could I have a bug that would output several correct codes and one failed one... Then as we were chatting it hit me. GT was nearly a copy/paste of EQ. I bet I was clearing the register before comparison. A quick change and off I went. The maze was a little more complicated almost inverted from before (gee I wonder why). But I made it through and got the correct code. Now I'm onto the 7th and 8th.
 
+### 18:00 MDT
+
+OK, I finally, officially solved the maze. Stupidly simple. Just remember 1, 2, 4, 2. If you don't know what that means. Good, go figure out your own solution. The last part is proving to be a pain in the ass. I see the impossibly complex loop. It all starts at ```[05451]``` and drives me insane at ```[06027]```.
+

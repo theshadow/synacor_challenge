@@ -180,7 +180,8 @@ class VmDebugger(object):
         'breako': 'g',
         'ssize': 'Z',
         'stack': 'S',
-        'cstack': 'C'
+        'cstack': 'C',
+        'cbreako': 'O'
     }
 
     COMMAND_OPTS_COUNT = {
@@ -203,7 +204,8 @@ class VmDebugger(object):
         'breako': 1,
         'ssize': 0,
         'stack': 0,
-        'cstack': 0
+        'cstack': 0,
+        'cbreako': 1,
     }
 
     COMMAND_SHORTCUTS = {v: k for k, v in COMMANDS.items()}
@@ -257,7 +259,7 @@ class VmDebugger(object):
         self.resume = False
         self.spy = False
         self.break_step_count = None
-        self.break_offset = None
+        self.offset_break_points = {}
         self._decompiler = None
         self.call_stack = deque()
 
@@ -282,7 +284,7 @@ class VmDebugger(object):
     def step(self, vm):
         self.step_counter += 1
 
-        if self.step_counter == self.break_step_count or self.vm.exec_ptr == self.break_offset:
+        if self.step_counter == self.break_step_count or self.vm.exec_ptr in self.offset_break_points:
             self.resume = False
 
         if self.spy:
@@ -361,7 +363,11 @@ class VmDebugger(object):
     def command_breako(self, offset):
         """ Sets a break point at a specific execution offset
         """
-        self.break_offset = int(offset)
+        self.offset_break_points[int(offset)] = True
+
+    def command_cbreako(self, offset):
+        if offset in self.offset_break_points:
+            del(self.offset_break_points[offset])
 
     def command_save(self, filename):
         FileLoader.save(self.vm.memory, filename)

@@ -2,11 +2,11 @@
   Decompiles bin files into a series of instructions.
 """
 
-from synacor import debugger
+from synacor.vm import FileLoader, Decompiler
 
 def main():
-    data = debugger.FileLoader.load('challenge.bin')
-    decompiler = debugger.Decompiler()
+    data = FileLoader.load('challenge.bin')
+    decompiler = Decompiler()
     decompiler.decompile(data)
 
 if __name__ == "__main__":
