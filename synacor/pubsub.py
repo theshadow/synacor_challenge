@@ -64,3 +64,17 @@ class PublisherAware(object):
 
     def __init__(self):
         self._pubsub_publisher = None
+
+
+class PubSubAware(object):
+    _pubsub = None
+
+    @property
+    def pubsub(self):
+        return self._pubsub
+
+    @pubsub.setter
+    def pubsub(self, pubsub):
+        self._pubsub = pubsub
+
+pubsub = PubSub()
