@@ -105,3 +105,8 @@ The creator of the challenge clarified that the code was, in fact, a bad code. S
 
 OK, I finally, officially solved the maze. Stupidly simple. Just remember 1, 2, 4, 2. If you don't know what that means. Good, go figure out your own solution. The last part is proving to be a pain in the ass. I see the impossibly complex loop. It all starts at ```[05451]``` and drives me insane at ```[06027]```.
 
+## Wednesday, March 26th, 2014
+
+# 18:00 MDT
+
+I haven't worked on this in a while. I attempted to get a curses based debugger going and just got annoyed. I also tried to build a vault solver and I think there is a rule I'm missing... I don't think it's just a star-node problem... For instance I can't return to or enter the starting room or end room more than once. Beyond that I'm going to have to debug the source to figure out what it wants. I'd still like to build some sort of UI for my VM debugger to make things a little easier to visualize as I step through memory. What the current call stack looks like, memory, registers, stack, and memory exporer... perhaps wx? I'll play with that next. I know I don't need it but it would make this part of the puzzle a little easier.
