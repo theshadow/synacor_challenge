@@ -18,7 +18,7 @@ def main():
     vm.load(data)
     #debugger.run()
 
-    debugger = VmDebugger(vm)
+    debugger = VmDebugger(vm, output_file='./debug.out')
     debugger.run()
 
 if __name__ == "__main__":

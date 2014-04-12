@@ -110,3 +110,27 @@ OK, I finally, officially solved the maze. Stupidly simple. Just remember 1, 2, 
 # 18:00 MDT
 
 I haven't worked on this in a while. I attempted to get a curses based debugger going and just got annoyed. I also tried to build a vault solver and I think there is a rule I'm missing... I don't think it's just a star-node problem... For instance I can't return to or enter the starting room or end room more than once. Beyond that I'm going to have to debug the source to figure out what it wants. I'd still like to build some sort of UI for my VM debugger to make things a little easier to visualize as I step through memory. What the current call stack looks like, memory, registers, stack, and memory exporer... perhaps wx? I'll play with that next. I know I don't need it but it would make this part of the puzzle a little easier.
+
+## Saturday, April 12th, 2014
+
+# 11:52 MDT
+
+I had one goal for today, decipher the teleporter validation loop. First task was to capture the loop so I could examine it in it's entirety. To do this I decided to use the teleporter twice in a row. Figuring if I did this then the loop would have to exist between the two IN instructions.
+
+Secondly, to accomplish the first goal I had to modify my debugger to output to a separate buffer. It was difficult to spy on things and get useful output from the program. To do this I made it so the debugger wrote to a file and I just ```tail -f``` the file.
+
+Once I had the loop captured in a file I started sifting through the call stack. I knew that the loop had to exist between two checks of the @7 register. Once I identified those two points I extracted that part out into it's own file (see loop.txt).
+
+Then I started annotating the code, line by line. I've learned a lot in this research.
+
+1. There is a loop which works with the memory addresses 27101 to 27106. However at 27107 there is what appears to be a value which may affect the outcome of the validation loop. I'm not sure yet, but a simple modification at 05655 to be 27102 would test this idea. I didn't do that yet as I wanted to see what else was happening.
+2. Further along, at 05667 it looks like some sort of decoding is happening in memory. I've only stepped through about 1/8th of this part of the loop so far but it's doing a lot of memory reading/writing which makes me think it's decoding something.
+
+Based on where I am in the annotation and stepping through I need to make it through roughly 4,453 more steps before I have the full image. I'm hoping I don't have to annotate all the way there just to figure this out though. I think something along the lines will stand out and let me figure out what is happening.
+
+So far my hypothesis's are the following
+
+1. Something is being decoded in memory and checked against for valid decryption...
+2. Something is being decoded in memory that will be jumped to.
+
+I'm still not sure which is the valid answer but it's family time. I'll just have to come back later.

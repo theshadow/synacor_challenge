@@ -95,7 +95,8 @@ class Decompiler(object):
             if self.offset > len(data) - 1:
                 break
 
-            self.offset = self.decompile_offset(self.offset, data)
+            self.offset, result = self.decompile_offset(self.offset, data)
+            print "[" + str(self.line).zfill(5) + ":" + str(self.offset).zfill(5) + "]: " + result
 
             self.line += 1
 
@@ -103,37 +104,36 @@ class Decompiler(object):
         instruction = data[offset]
 
         if instruction in Decompiler.ZERO_OPTS:
-            self.print_instruction(offset, instruction)
+            result = self.parse_instruction(offset, instruction)
             offset += 1
         elif instruction in Decompiler.ONE_OPTS:
             a = data[offset + 1]
-            self.print_instruction(offset, instruction, a)
+            result = self.parse_instruction(offset, instruction, a)
             offset += 2
         elif instruction in Decompiler.TWO_OPTS:
             a = data[offset + 1]
             b = data[offset + 2]
-            self.print_instruction(offset, instruction, a, b)
+            result = self.parse_instruction(offset, instruction, a, b)
             offset += 3
         elif instruction in Decompiler.THREE_OPTS:
             a = data[offset + 1]
             b = data[offset + 2]
             c = data[offset + 3]
-            self.print_instruction(offset, instruction, a, b, c)
+            result = self.parse_instruction(offset, instruction, a, b, c)
             offset += 4
         else:
-            print "Unknown instruction: %s:%s" % (str(offset), str(instruction))
+            result = str(instruction)
             offset += 1
 
-        return offset
+        return offset, result
 
-    def print_instruction(self, offset, instruction, a=None, b=None, c=None):
+    def parse_instruction(self, offset, instruction, a=None, b=None, c=None):
         params = [self.parse_argument(x)  for x in [a, b, c] if x is not None]
         param_tokens = [] + (["%s"] * len(params))
 
-        line = "[" + str(self.line).zfill(5) + ":" + str(offset).zfill(5) + "]: " + INSTRUCTIONS[instruction] \
-               + " " + ", ".join(param_tokens)
+        line = INSTRUCTIONS[instruction] + " " + ", ".join(param_tokens)
 
-        print line % tuple(params)
+        return line % tuple(params)
 
     def parse_argument(self, argument):
         if Vm.is_register(argument):
@@ -251,7 +251,7 @@ class VmDebugger(object):
     def decompiler(self, decompiler):
         self._decompiler = decompiler
 
-    def __init__(self, vm):
+    def __init__(self, vm, output_file=None):
         self._pubsub = None
         self._vm = None
         self.step_counter = 0
@@ -262,6 +262,10 @@ class VmDebugger(object):
         self.offset_break_points = {}
         self._decompiler = None
         self.call_stack = deque()
+        self.output_file = None
+
+        if output_file is not None:
+            self.output_file = open(output_file, 'w+')
 
         publisher = self.pubsub.new_publisher()
         vm.publisher = publisher
@@ -271,6 +275,13 @@ class VmDebugger(object):
         self.pubsub.subscribe('run-start', self.run_start)
         self.pubsub.subscribe('step', self.step)
         self.pubsub.subscribe('run-end', self.run_end)
+
+    def print_out(self, string):
+        if self.output_file is None:
+            print string
+        else:
+            self.output_file.write(str(string) + '\n')
+            self.output_file.flush()
 
     def run(self):
         self.vm.run()
@@ -288,9 +299,9 @@ class VmDebugger(object):
             self.resume = False
 
         if self.spy:
-            print "%s:%s - %s" % (str(self.step_counter),
-                                  self.format_memory_address(self.vm.exec_ptr),
-                                  INSTRUCTIONS[self.vm.read_memory(self.vm.exec_ptr)])
+            memory_address = self.format_memory_address(self.vm.exec_ptr)
+            offset, decompiled = self.decompiler.decompile_offset(self.vm.exec_ptr, self.vm.memory)
+            self.print_out("%s:%s %s" % (str(self.step_counter), memory_address, decompiled))
 
         self.call_stack.append(self.vm.exec_ptr)
 
@@ -322,7 +333,7 @@ class VmDebugger(object):
             command = VmDebugger.COMMAND_SHORTCUTS[command]
 
         if command not in VmDebugger.COMMANDS:
-            print "Command %s unknown, ignoring" % (command)
+            self.print_out("Command %s unknown, ignoring" % (command))
             return
 
         command_opts_count = self.COMMAND_OPTS_COUNT[command]
@@ -334,7 +345,7 @@ class VmDebugger(object):
             correct_opt_count = True
 
         if not correct_opt_count:
-            print "Invalid options count for %s" % (command)
+            self.print_out("Invalid options count for %s" % (command))
             return
 
         getattr(self,'command_' + command)(*options)
@@ -342,12 +353,12 @@ class VmDebugger(object):
     def command_ssize(self):
         """ Output the current size of the stack
         """
-        print "Stack size: %s" % (str(len(self.vm.stack)))
+        self.print_out("Stack size: %s" % (str(len(self.vm.stack))))
 
     def command_stack(self):
         """ Output the stack
         """
-        print self.vm.stack
+        self.print_out(self.vm.stack)
 
     def command_cstack(self):
         """ Output the call stack
@@ -389,7 +400,7 @@ class VmDebugger(object):
 
     def command_peek(self, address_from, address_to=None):
         if address_from is None:
-            print "Invalid address_from specified: " + self.format_memory_address(address_from)
+            self.print_out("Invalid address_from specified: " + self.format_memory_address(address_from))
 
         if address_to is not None:
             self.print_memory_range(address_from, address_to)
@@ -403,22 +414,22 @@ class VmDebugger(object):
         value = int(value)
 
         if address < 0 or address > MAX_MEMORY_ADDRESS:
-            print "Invalid memory address to poke, must be between 0...%s" % (str(MAX_MEMORY_ADDRESS))
+            self.print_out("Invalid memory address to poke, must be between 0...%s" % (str(MAX_MEMORY_ADDRESS)))
             return
 
         if value > MAX_VALID_VALUE:
-            print "Invalid value, must be between 0...%s" % (str(MAX_VALID_VALUE))
+            self.print_out("Invalid value, must be between 0...%s" % (str(MAX_VALID_VALUE)))
             return
 
         self.vm.write_memory(address, value)
 
     def command_speek(self, offset_from, offset_to=None):
         if len(self.vm.stack) == 0:
-            print "Stack is empty."
+            self.print_out("Stack is empty.")
             return
 
         if offset_from is None:
-            print "Invalid offset_from specified: " + str(offset_from)
+            self.print_out("Invalid offset_from specified: " + str(offset_from))
 
         stack_size = len(self.vm.stack)
 
@@ -434,7 +445,7 @@ class VmDebugger(object):
         value = int(value)
 
         if value > MAX_VALID_VALUE:
-            print "Invalid value, must be between 0...%s" % (str(MAX_VALID_VALUE))
+            self.print_out("Invalid value, must be between 0...%s" % (str(MAX_VALID_VALUE)))
 
         self.vm.write_stack(offset, value)
 
@@ -446,7 +457,7 @@ class VmDebugger(object):
     def command_pop(self):
         value = self.vm.stack_pop()
 
-        print "%s" % str(value)
+        self.print_out("%s" % str(value))
 
     def command_jump(self, address):
         address = int(address)
@@ -465,7 +476,7 @@ class VmDebugger(object):
         for offset in range(len(self.vm.registers)):
             value = self.vm.registers[offset]
             registers["@%s" % str(offset)] = value
-        print registers
+        self.print_out(registers)
 
     def command_quit(self):
         self.step_continue = True
@@ -482,7 +493,7 @@ class VmDebugger(object):
         address = int(address)
         memory_value = self.vm.read_memory(address)
         memory_value = self.compose_register_annotation(memory_value)
-        print "%s: %s" % (self.format_memory_address(address), memory_value)
+        self.print_out("%s: %s" % (self.format_memory_address(address), memory_value))
 
     def print_stack_range(self, offset_from, offset_to):
         offset_from = int(offset_from)
@@ -495,7 +506,7 @@ class VmDebugger(object):
         offset = int(offset)
         stack_value = self.vm.read_stack(offset)
         stack_value = self.compose_register_annotation(stack_value)
-        print "%s: %s" % (offset, stack_value)
+        self.print_out("%s: %s" % (offset, stack_value))
 
     def parse_register_annotation(self, annotation):
         if annotation[0] == VmDebugger.REGISTER_ANNOTATION:
