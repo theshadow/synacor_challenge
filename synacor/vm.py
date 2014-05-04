@@ -148,8 +148,9 @@ class FileLoader(object):
         return data
 
     @staticmethod
-    def save(ndarray, file):
-        ndarray.astype('<u2').tofile(file)
+    def save(data, file):
+        converted_data = array(data, dtype=uint16)
+        converted_data.tofile(file)
 
 
 class VmDebugger(object):

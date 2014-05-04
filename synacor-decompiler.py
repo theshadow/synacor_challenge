@@ -5,7 +5,7 @@
 from synacor.vm import FileLoader, Decompiler
 
 def main():
-    data = FileLoader.load('challenge.bin')
+    data = FileLoader.load('memdump.dat')
     decompiler = Decompiler()
     decompiler.decompile(data)
 
