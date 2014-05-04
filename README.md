@@ -113,7 +113,7 @@ I haven't worked on this in a while. I attempted to get a curses based debugger 
 
 ## Saturday, April 12th, 2014
 
-# 11:52 MDT
+###11:52 MDT
 
 I had one goal for today, decipher the teleporter validation loop. First task was to capture the loop so I could examine it in it's entirety. To do this I decided to use the teleporter twice in a row. Figuring if I did this then the loop would have to exist between the two IN instructions.
 
@@ -134,3 +134,15 @@ So far my hypothesis's are the following
 2. Something is being decoded in memory that will be jumped to.
 
 I'm still not sure which is the valid answer but it's family time. I'll just have to come back later.
+
+## Friday, April 18th, 2014
+
+### 22:57 MDT
+
+Overall I felt that last sessions work was mostly useless. Though I got a better understanding of where in code things were going I didn't really have a mental image of what was going on. It was all still very cloudy, so I decided to take a step back and start to gather breadcrumbs.
+
+To do this I went back and chained together a simple series of bash commands and a near stupid python script to try and identify functions within the program. Once I had them all I started isolating them in a new file ```extracted-functions.src```. From here I started moving through each function trying to map out what exactly it was doing and why it was there. I'll be honest, some of them were confusing as hell while others were obvious, and other still became clear after deciphering other functions.
+
+I did this all based off of my original decompile of the bin, which obviously has encoded sections of memory. So after I'm done figuring out what the "clear text" source is for I'll save a dump of memory after the self-test. Since it's obvious (and was hinted at) that it decodes the rest of memory before moving on. Luckily by this point I've identified the decryption method, or at least one part of it. Which is annotated in the new extracted functions file. There are still several more functions to rip out but I'm cutting down that number at a pretty good rate. I think by some point Sunday I should have a clearer image of what is going on.
+
+For now though, it's time for bed.

@@ -2,7 +2,7 @@
     Entry point into the challenge code.
 """
 
-import numpy
+import sys, os
 
 from synacor.vm import Vm, VmDebugger, FileLoader
 
@@ -18,7 +18,11 @@ def main():
     vm.load(data)
     #debugger.run()
 
-    debugger = VmDebugger(vm, output_file='./debug.out')
+    output_file = None
+    if len(sys.argv) == 2:
+        output_file = sys.argv[1]
+
+    debugger = VmDebugger(vm, output_file=output_file)
     debugger.run()
 
 if __name__ == "__main__":
