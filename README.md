@@ -216,9 +216,8 @@ This function was the cause of my derailment for the last 48 hours. it took a bi
 #        return
 #    @2 = @2 + 32767
 #    if @2 > 0:
-#        @1 = 0
 #        continue
-#    @1 = 1
+#    @1 = 0
 #    return
 #
 # PARAM @0:
