@@ -80,8 +80,8 @@ TOROIDAL_MEMORY = True
 class Decompiler(object):
 
     ZERO_OPTS = [HALT, NOOP, RET]
-    ONE_OPTS = [PUSH, POP, JMP, CALL, OUT, IN]
-    TWO_OPTS = [SET, JT, JF, RMEM, WMEM, NOT]
+    ONE_OPTS = [PUSH, JMP, CALL, OUT, IN]
+    TWO_OPTS = [JT, JF, WMEM]
     THREE_OPTS = [EQ, GT, ADD, MULT, MOD, AND, OR]
 
     def __init__(self):
@@ -95,9 +95,10 @@ class Decompiler(object):
             if self.offset > len(data) - 1:
                 break
 
-            self.offset, result = self.decompile_offset(self.offset, data)
+            new_offset, result = self.decompile_offset(self.offset, data)
             print "[" + str(self.line).zfill(5) + ":" + str(self.offset).zfill(5) + "]: " + result
 
+            self.offset = new_offset
             self.line += 1
 
     def decompile_offset(self, offset, data):
@@ -106,16 +107,16 @@ class Decompiler(object):
         if instruction in Decompiler.ZERO_OPTS:
             result = self.parse_instruction(offset, instruction)
             offset += 1
-        elif instruction in Decompiler.ONE_OPTS:
+        elif instruction in Decompiler.ONE_OPTS or (instruction == POP and Vm.is_register(data[offset + 1])):
             a = data[offset + 1]
             result = self.parse_instruction(offset, instruction, a)
             offset += 2
-        elif instruction in Decompiler.TWO_OPTS:
+        elif instruction in Decompiler.TWO_OPTS or (instruction in (NOT, SET, RMEM) and Vm.is_register(data[offset + 1])):
             a = data[offset + 1]
             b = data[offset + 2]
             result = self.parse_instruction(offset, instruction, a, b)
             offset += 3
-        elif instruction in Decompiler.THREE_OPTS:
+        elif instruction in Decompiler.THREE_OPTS and Vm.is_register(data[offset + 1]):
             a = data[offset + 1]
             b = data[offset + 2]
             c = data[offset + 3]

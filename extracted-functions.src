@@ -111,16 +111,16 @@
 [00668:01466]: push @6
 [00669:01468]: set @6, @0
 [00670:01471]: set @5, @1
-[00671:01474]: rmem @4, @0          # read from @0
+[00671:01474]: rmem @4, @0          # read length of string from @0
 [00672:01477]: set @1, 0
-[00673:01480]: add @3, 1, @1        # set @3 = 1
-[00674:01484]: gt @0, @3, @4        # check if @3 is greater than @4
-[00675:01488]: jt @0, 1507          # if @3 is greater than @4 jump to [1507]
-[00676:01491]: add @3, @3, @6       # @3 = @3 + @6
-[00677:01495]: rmem @0, @3          # read from [@0] + 1
-[00678:01498]: call @5              # F1619(@0=[@0 + 1], @1=0, @2=???)
-[00679:01500]: add @1, @1, 1        # F1619 sets @1 to 32767 if [@1 + @2 + 1] == @0 so if they don't match @1 = 0, not 0 otherwise
-[00680:01504]: jt @1, 1480          # if [@2 + 1] == [@0 + 1] jump to 1480
+[00673:01480]: add @3, 1, @1        # set @3 to be @1 + 1
+[00674:01484]: gt @0, @3, @4        # Check if @3 is greater than the length of the string (@1 is offset value)
+[00675:01488]: jt @0, 1507          # If we've iterated passed the lengh of the string (PARAM @0) quit the loop
+[00676:01491]: add @3, @3, @6       # Set @3 to be the offset in the string
+[00677:01495]: rmem @0, @3          # Read a character from the string into memory based on (@0 + N)
+[00678:01498]: call @5              #
+[00679:01500]: add @1, @1, 1        #
+[00680:01504]: jt @1, 1480          #
 [00681:01507]: pop @6
 [00682:01509]: pop @5
 [00683:01511]: pop @4

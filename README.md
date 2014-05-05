@@ -146,3 +146,86 @@ To do this I went back and chained together a simple series of bash commands and
 I did this all based off of my original decompile of the bin, which obviously has encoded sections of memory. So after I'm done figuring out what the "clear text" source is for I'll save a dump of memory after the self-test. Since it's obvious (and was hinted at) that it decodes the rest of memory before moving on. Luckily by this point I've identified the decryption method, or at least one part of it. Which is annotated in the new extracted functions file. There are still several more functions to rip out but I'm cutting down that number at a pretty good rate. I think by some point Sunday I should have a clearer image of what is going on.
 
 For now though, it's time for bed.
+
+## Saturday, May 3rd, 2014
+
+### 18:00 MDT
+
+I hadn't looked at the challenge in a while but I decided to come back and take another stab. This time I built on the previous session. Again I didn't feel I was getting enough clarity. So I started by annotating all the functions I could find (via CALL instructions) and figure out what each one did. After a while I had identified some function but none of it seemed to come together like I wanted. I still felt like I was in the middle of a conversation in greek and I only understood a fraction of it. I needed a new plan of attack.
+
+With this in mind I went back and dusted off the code which allowed me to dump the memory of the running program. Knowing that bits and pieces of it were encoded I figured after the self-test (as was hinted by the creator) most of the memory was decoded. This was proven to be true. Then I reran my call analysis. I wanted to focus on the most and least called functions figuring they'd be the most important for one reason or another.
+
+My understanding of the code drastically improved at this point. I started replacing ```CALL 1234``` instructions with more friendly annotations such as ```CALL 1234:PRINT_STRING(@0=..., @1=...)```. Then, almost by luck, and after a bit of puzzlement I deciphered one of the functions that had plagued me since the beginning. Originally annotated as F1458.
+
+Multiple times while stepping through code I'd find myself in this function and for the life of me I couldn't figure out why. It just didn't make any sense to me. It did something different each time, though the answer was staring me in the face. It wasn't until I saw it called with a reference to my PRINT_STRING method that it clicked. It was effectively a map function for a section in memory. It takes a starting address and a callback and walks that section of memory applying the callback to each offset in memory returning the result of the callback in @2. Amazingly several other pieces of code became suddenly clear. One method that I think is used for decoding other sections of memory is called several times in conjunction with the MEM_MAP function. It was quite the breakthrough for me, well at least until I got side tracked.
+
+The tangent causing piece of code is what started it all.
+
+```
+[00956:02240]: ret
+[00957:02241]: set @0, 0
+[00958:02244]: set @1, 0
+[00959:02247]: ret
+```
+
+I saw it while following a call stack from another function and thought to myself, "huh, that seems like a small function I should annotate it and figure out who calls it because that would be super simple." Then I saw that no one called it, it was jumped to from the following function.
+
+```
+[00935:02178]: jf @0, 2241              # call ZERO_R0_R1()
+[00936:02181]: jf @1, 2241              # call ZERO_R0_R1()
+[00937:02184]: push @2
+[00938:02186]: push @3
+[00939:02188]: gt @2, @1, @0            # if @1 is greater than @0
+[00940:02192]: jt @2, 2204              # jump to 2204
+[00941:02195]: set @2, @0               # else swap @0 and @1
+[00942:02198]: set @0, @1
+[00943:02201]: set @1, @2
+[00944:02204]: set @2, @0               # previous lines swap @0 and @1
+[00945:02207]: set @0, 0
+[00946:02210]: add @0, @0, @1           # @0 equals the sum of @0 and @1
+[00947:02214]: gt @3, @1, @0            # if @1 is still greater @0
+[00948:02218]: jt @3, 2233              # jump to 2233
+[00949:02221]: add @2, @2, 32767        # add @2 and 32767
+[00950:02225]: jt @2, 2210              # if @2 is not zero then jump to 2210
+[00951:02228]: set @1, 0
+[00952:02231]: jmp 2236
+[00953:02233]: set @1, 1
+[00954:02236]: pop @3
+[00955:02238]: pop @2
+[00956:02240]: ret
+```
+
+This function was the cause of my derailment for the last 48 hours. it took a bit to finally realize that the previously mentioned "function" wasn't in fact a function but a second return for this function. Though that was the easy part. Logically I could read what this function did. I could even explain to someone each instruction. What I could not, and still can not with any certainty, is explain why. To kind of clarify it for those who may not understand the assembly flavor of this VM I shall copy my doc block from this section of code:
+
+```
+####################
+# FUNCTION F2178
+#
+# DESCRIPTION:
+# if @0 == 0 or @1 == 0:
+#    @0 = @1 = 0
+#    return
+# if @1 > @0:
+#    @0, @1 = @1, @0
+# @2 = @0
+# @0 = 0
+# while True:
+#    @0 = @0 + @1
+#    if @1 > @0:
+#        @1 = 1
+#        return
+#    @2 = @2 + 32767
+#    if @2 > 0:
+#        @1 = 0
+#        continue
+#    @1 = 1
+#    return
+#
+# PARAM @0:
+# PARAM @1:
+#
+# RETURN @0, @1
+####################
+```
+
+The only thing I can say about this code is that if @0 and @1 are large enough to cause @0 to roll over (because all the math is MOD 32768), then @1 will be set to 1. In all other instances, the code will sit there and loop till either this condition is met OR until ```@2 + 32767``` becomes zero. So in a bizarre sort of way it is a loop where the number of loop iterations is determined by @0s and @1s proximity to MAX_INT (32767). The closer one of these numbers is to MAX_INT the shorter the looping period. Baffling I tell you. Before I could do some searching to find out who calls this monstrosity the Wife and I went to go hiking so all of this was put off for now.
